@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
+<Xdmf Version="3.0" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <Domain>
+    <Grid Name="scatterer" GridType="Uniform">
+      <Topology TopologyType="Quadrilateral" NumberOfElements="892623" NodesPerElement="4">
+        <DataItem Dimensions="892623 4" NumberType="Int" Format="HDF">Mesh_h=0.02210_quad=True.h5:/Mesh/scatterer/topology</DataItem>
+      </Topology>
+      <Geometry GeometryType="XY">
+        <DataItem Dimensions="894188 2" Format="HDF">Mesh_h=0.02210_quad=True.h5:/Mesh/scatterer/geometry</DataItem>
+      </Geometry>
+    </Grid>
+    <Grid Name="scatterer_cells" GridType="Uniform">
+      <xi:include xpointer="xpointer(/Xdmf/Domain/Grid[@Name='scatterer']/Geometry)" />
+      <Topology TopologyType="Quadrilateral" NumberOfElements="892623" NodesPerElement="4">
+        <DataItem Dimensions="892623 4" NumberType="Int" Format="HDF">Mesh_h=0.02210_quad=True.h5:/MeshTags/scatterer_cells/topology</DataItem>
+      </Topology>
+      <Attribute Name="scatterer_cells" AttributeType="Scalar" Center="Cell">
+        <DataItem Dimensions="892623 1" Format="HDF">Mesh_h=0.02210_quad=True.h5:/MeshTags/scatterer_cells/Values</DataItem>
+      </Attribute>
+    </Grid>
+    <Grid Name="scatterer_facets" GridType="Uniform">
+      <xi:include xpointer="xpointer(/Xdmf/Domain/Grid[@Name='scatterer']/Geometry)" />
+      <Topology TopologyType="PolyLine" NumberOfElements="7612" NodesPerElement="2">
+        <DataItem Dimensions="7612 2" NumberType="Int" Format="HDF">Mesh_h=0.02210_quad=True.h5:/MeshTags/scatterer_facets/topology</DataItem>
+      </Topology>
+      <Attribute Name="scatterer_facets" AttributeType="Scalar" Center="Cell">
+        <DataItem Dimensions="7612 1" Format="HDF">Mesh_h=0.02210_quad=True.h5:/MeshTags/scatterer_facets/Values</DataItem>
+      </Attribute>
+    </Grid>
+  </Domain>
+</Xdmf>
