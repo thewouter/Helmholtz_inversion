@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-
 import numpy as np
 import ufl
 from scipy.special import zeta
 from scipy.optimize import fsolve
 from dolfinx import fem, geometry
+from dolfinx.fem.petsc import assemble_matrix, assemble_vector, set_bc
 from petsc4py import PETSc
 from Generate_Mesh import *
 
@@ -263,9 +262,9 @@ solver_data.setType(PETSc.KSP.Type.PREONLY)
 solver_data.getPC().setType(PETSc.PC.Type.LU)
 
 L_data = alpha_data('+')*ufl.inner(u_i_n_data, v_data)('+')*dS_data - alpha_data*ufl.inner(ufl.grad(u_i_boundary_data), ufl.grad(v_data))*dx_inner_data + kappa_sqrd_data*ufl.inner(u_i_boundary_data, v_data)*dx_inner_data
-b_data = fem.petsc.assemble_vector(fem.form(L_data))
+b_data = assemble_vector(fem.form(L_data))
 b_data.assemble()
-fem.petsc.set_bc(b_data, [bc_data])
+set_bc(b_data, [bc_data])
 
 
 create_domain_inv = Generate_Mesh(**kwargs_inv)
