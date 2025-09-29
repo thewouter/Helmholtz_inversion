@@ -25,7 +25,8 @@ kwargs_data = {
 }
 kwargs_inv = {
     "freq" : freq,
-    "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3),
+    # "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3),
+    "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3) * 10,
     "char_len" : True,
     "s" : 0.2,
     "K" : 100,
