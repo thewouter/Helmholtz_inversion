@@ -394,29 +394,29 @@ def forward_observation(Y, **kwargs):
     
     data     = kwargs["data"] if "data" in kwargs else False
 
+    def pr(str):
+        print(f"[{time.time() - start_time:5.0f}s] {str}")
     # if "data" == True:
     if data == True:
         start_time = time.time()
-        def pr(str):
-            print(f"[{time.time() - start_time:5.0f}s] {str}")
         uh_data = fem.Function(V_data)
         alpha_hat_data, kappa_sqrd_hat_data = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_data, Y)
-        # pr(f"build mapping")
+        pr(f"build mapping")
         a_data = ufl.inner(alpha_data*alpha_hat_data*A_matrix_data*ufl.grad(u_data), ufl.grad(v_data))*ufl.dx - ufl.inner(kappa_sqrd_data*kappa_sqrd_hat_data*dd_bar_data*u_data, v_data)*ufl.dx
         bilinear_form_data = fem.form(a_data)
         A_data = fem.petsc.assemble_matrix(bilinear_form_data, bcs=[bc_data])
         A_data.assemble()
-        # pr("A_data assemble")
+        pr("A_data assemble")
 
         solver_data.setOperators(A_data)
         solver_data.solve(b_data, uh_data.vector)
-        # pr("solver solve")
+        pr("solver solve")
 
         # Observation operator
         measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
         ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
         measurement_values = []
-        # pr("do observations")
+        pr("do observations")
 
         ui_data = fem.Function(V_data)
         ui_data.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
@@ -428,7 +428,7 @@ def forward_observation(Y, **kwargs):
             measurement_value_local = fem.assemble_scalar(measurement_value)
             measurement_value_global = (domain_data.comm.allreduce(measurement_value_local, op=MPI.SUM))
             measurement_values.append(np.real(measurement_value_global))
-        # pr("done")
+        pr("done")
   
     else:
         uh_inv = fem.Function(V_inv)
@@ -438,23 +438,30 @@ def forward_observation(Y, **kwargs):
         bilinear_form_inv = fem.form(a_inv)
         A_inv = fem.petsc.assemble_matrix(bilinear_form_inv, bcs=[bc_inv])
         A_inv.assemble()
+        pr("build mapping")
 
         solver_inv.setOperators(A_inv)
         solver_inv.solve(b_inv, uh_inv.vector)
+        pr(f"Solved inverse")
 
         # Observation operator
         measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
         ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
         measurement_values = []
+        pr("do observations")
 
         ui_inv = fem.Function(V_inv)
         ui_inv.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
 
         for k in range(len(angles_meas)):
+            pr(1)
             smoothing_inv = fem.Function(V_inv)
             smoothing_inv.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
             measurement_value = fem.form(ufl.inner((uh_inv - ui_inv), smoothing_inv*kappa_sqrd_hat_inv) * ufl.dx)
             measurement_value_local = fem.assemble_scalar(measurement_value)
+            pr(2)
             measurement_value_global = (domain_inv.comm.allreduce(measurement_value_local, op=MPI.SUM))
+            pr(3)
             measurement_values.append(np.real(measurement_value_global))
+            pr(4)
     return np.array(measurement_values)
