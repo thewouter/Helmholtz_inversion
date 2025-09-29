@@ -399,7 +399,7 @@ def forward_observation(Y, **kwargs):
     start_time = time.time()
     def pr(str, log=True):
         if log:
-            print(f"[{time.time() - start_time:5.0f}s] {str}")
+            print(f"[{time.time() - start_time:5.3f}s] {str}")
     # if "data" == True:
     if data == True:
         uh_data = fem.Function(V_data)
@@ -437,9 +437,8 @@ def forward_observation(Y, **kwargs):
         # get the current process instance
         process = current_process()
         # report the name of the process
-        print(process.name)
-        log = process.name[-3:] == "129"
-        pr(f"name: {process.name[-3:]}", log)
+        log = process.name[-1:] == "1"
+        pr(f"name: {process.name}", log)
         uh_inv = fem.Function(V_inv)
         alpha_hat_inv, kappa_sqrd_hat_inv = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_inv, Y)
 
