@@ -394,11 +394,11 @@ def forward_observation(Y, **kwargs):
     
     data     = kwargs["data"] if "data" in kwargs else False
 
+    start_time = time.time()
     def pr(str):
         print(f"[{time.time() - start_time:5.0f}s] {str}")
     # if "data" == True:
     if data == True:
-        start_time = time.time()
         uh_data = fem.Function(V_data)
         alpha_hat_data, kappa_sqrd_hat_data = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_data, Y)
         pr(f"build mapping")
