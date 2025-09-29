@@ -129,7 +129,7 @@ class Generate_Mesh():
           with io.XDMFFile(MPI.COMM_SELF, "Meshes/Mesh_h={0:.5f}_quad={1}.XDMF".format(self.h,self.quad), "w") as xdmf:
             domain.topology.create_connectivity(domain.topology.dim, domain.topology.dim - 1)
             xdmf.write_mesh(domain)
-            xdmf.write_meshtags(ct, geometry_xpath=f"/Xdmf/Domain/Grid[@Name='{domain.name}']/Geometry")
-            xdmf.write_meshtags(ft, geometry_xpath=f"/Xdmf/Domain/Grid[@Name='{domain.name}']/Geometry")    
+            xdmf.write_meshtags(ct, domain.geometry, geometry_xpath=f"/Xdmf/Domain/Grid[@Name='{domain.name}']/Geometry")
+            xdmf.write_meshtags(ft, domain.geometry, geometry_xpath=f"/Xdmf/Domain/Grid[@Name='{domain.name}']/Geometry")
             
         return domain, ct, ft
