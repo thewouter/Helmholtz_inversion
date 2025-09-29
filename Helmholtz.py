@@ -397,8 +397,9 @@ def forward_observation(Y, **kwargs):
     data     = kwargs["data"] if "data" in kwargs else False
 
     start_time = time.time()
-    def pr(str):
-        print(f"[{time.time() - start_time:5.0f}s] {str}")
+    def pr(str, log=True):
+        if log:
+            print(f"[{time.time() - start_time:5.0f}s] {str}")
     # if "data" == True:
     if data == True:
         uh_data = fem.Function(V_data)
@@ -437,7 +438,8 @@ def forward_observation(Y, **kwargs):
         process = current_process()
         # report the name of the process
         print(process.name)
-        pr(f"name: {process.name}")
+        log = process.name[-3:] == "129"
+        pr(f"name: {process.name[-3:]}", log)
         uh_inv = fem.Function(V_inv)
         alpha_hat_inv, kappa_sqrd_hat_inv = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_inv, Y)
 
@@ -445,30 +447,30 @@ def forward_observation(Y, **kwargs):
         bilinear_form_inv = fem.form(a_inv)
         A_inv = fem.petsc.assemble_matrix(bilinear_form_inv, bcs=[bc_inv])
         A_inv.assemble()
-        pr("build mapping")
+        pr("build mapping", log)
 
         solver_inv.setOperators(A_inv)
         solver_inv.solve(b_inv, uh_inv.vector)
-        pr(f"Solved inverse")
+        pr(f"Solved inverse", log)
 
         # Observation operator
         measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
         ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
         measurement_values = []
-        pr("do observations")
+        pr("do observations", log)
 
         ui_inv = fem.Function(V_inv)
         ui_inv.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
 
         for k in range(len(angles_meas)):
-            # pr(1)
+            pr(1, log)
             smoothing_inv = fem.Function(V_inv)
             smoothing_inv.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
             measurement_value = fem.form(ufl.inner((uh_inv - ui_inv), smoothing_inv*kappa_sqrd_hat_inv) * ufl.dx)
             measurement_value_local = fem.assemble_scalar(measurement_value)
-            # pr(2)
+            pr(2, log)
             measurement_value_global = (domain_inv.comm.allreduce(measurement_value_local, op=MPI.SUM))
-            # pr(3)
+            pr(3, log)
             measurement_values.append(np.real(measurement_value_global))
-            # pr(4)
+            pr(4, log)
     return np.array(measurement_values)
