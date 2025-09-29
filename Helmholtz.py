@@ -1,3 +1,4 @@
+import multiprocessing
 import time
 
 import numpy as np
@@ -431,6 +432,7 @@ def forward_observation(Y, **kwargs):
         pr("done")
   
     else:
+        pr(f"name: {multiprocessing.Process.name}")
         uh_inv = fem.Function(V_inv)
         alpha_hat_inv, kappa_sqrd_hat_inv = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_inv, Y)
 
@@ -454,14 +456,14 @@ def forward_observation(Y, **kwargs):
         ui_inv.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
 
         for k in range(len(angles_meas)):
-            pr(1)
+            # pr(1)
             smoothing_inv = fem.Function(V_inv)
             smoothing_inv.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
             measurement_value = fem.form(ufl.inner((uh_inv - ui_inv), smoothing_inv*kappa_sqrd_hat_inv) * ufl.dx)
             measurement_value_local = fem.assemble_scalar(measurement_value)
-            pr(2)
+            # pr(2)
             measurement_value_global = (domain_inv.comm.allreduce(measurement_value_local, op=MPI.SUM))
-            pr(3)
+            # pr(3)
             measurement_values.append(np.real(measurement_value_global))
-            pr(4)
+            # pr(4)
     return np.array(measurement_values)
