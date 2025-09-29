@@ -10,7 +10,7 @@ from mpi4py import MPI
 This code is made for DOLFINx version 0.5.1.
 '''
 
-class Generate_Mesh():
+class Generate_Mesh:
     def __init__(self, **kwargs):
         self.r0      = kwargs["r0"]      if "r0"      in kwargs else 1            # Radius of reference configuration in cm (scaling because of numerical underflow)
         self.R       = kwargs["R"]       if "R"       in kwargs else 7            # Radius of coordinate transformation domain D_R in cm

@@ -16,7 +16,8 @@ This code is made for DOLFINx version 0.5.1.
 freq = 2*10**9
 kwargs_data = {
     "freq" : freq,
-    "h" : 0.5*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3),
+    # "h" : 0.5*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3),
+    "h" : 0.5*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3 * 10),
     "quad" : True,
     "char_len" : True,
     "s" : 0.2,
@@ -244,10 +245,11 @@ s        = kwargs_data["s"]        if "s"        in kwargs_data else 0.001 # Sca
 K            = kwargs_data["K"]            if "K"            in kwargs_data else 100  # Number of measured points
 sigma_smooth = kwargs_data["sigma_smooth"] if "sigma_smooth" in kwargs_data else fsolve(lambda sigma: 1/(2*np.pi*sigma**2)*np.e**(-(0.5*np.sqrt((1/2**3)**2 * (10**9/(4*10**9))**3))**2/(2*sigma**2))-0.1, x0=0.1)[0]# the exponential is still 10% one characterstic length further
 
-
+print(f"Generating mesh")
 create_domain_data = Generate_Mesh(**kwargs_data)
 domain_data, ct_data, ft_data = create_domain_data()
 
+print(f"generating function spaces")
 V_data = fem.FunctionSpace(domain_data, ("CG", 1)) # Solution space
 Q_data = fem.FunctionSpace(domain_data, ("DG", 0)) # For discontinuous expressions
 
@@ -266,6 +268,7 @@ for tag in material_tags_data:
     alpha_data.x.array[cells] = np.full_like(cells, alpha_data_, dtype=PETSc.ScalarType)
     kappa_sqrd_data.x.array[cells] = np.full_like(cells, kappa_sqrd_data_, dtype=PETSc.ScalarType)
 
+print(f"setting up weak from data for pml etc")
 bc_data = fem.dirichletbc(fem.Constant(domain_data, PETSc.ScalarType(0)), fem.locate_dofs_topological(V_data, gdim-1, ft_data.find(6)), V_data) # Set zero Dirichlet boundary condition at R_PML
 u_i_boundary_data  = fem.Function(V_data)
 dof_data = V_data.tabulate_dof_coordinates()[:, 0:2]
