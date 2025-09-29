@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import ufl
 from scipy.special import zeta
@@ -167,14 +169,21 @@ def Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, x):
 
 
 def get_J(**kwargs):
+    """
+    Compute the number of terms in the radius expansion needed to get a given variance. J equals the highest wavenumber
+    in the expansion, so the dimensionality is double that.
+    :param kwargs:
+    :return:
+    """
     epsilon  = kwargs["epsilon"]  if "epsilon"  in kwargs else 0.001 # Small number greater than zero for convergence of radius expansion
-    char_len = kwargs["char_len"] if "char_len" in kwargs else False # Determines type of expansion
-    s        = kwargs["s"]        if "s"        in kwargs else 0.001 # Scaled version of correlation length
+    char_len = kwargs["char_len"] if "char_len" in kwargs else False # Determines if exapnsion (35) is used, (34) if false
+    s        = kwargs["s"]        if "s"        in kwargs else 0.001 # Scaled version of correlation length if (35) is used
     
     if char_len == True:
-        sum = np.sum(np.array([1/(1 + s*k**(2 + epsilon)) for k in range(1, 1000000)]))
+        # Expansion with correlation length. Eqn (35) in thesis
+        # sum = np.sum(np.array([1/(1 + s*k**(2 + epsilon)) for k in range(1, 1000000)]))
 
-        var_sum = np.sum(np.array([1/((1 + s*k**(2 + epsilon))**2) for k in range(1, 1000000)]))
+        var_sum = np.sum(np.array([1/((1 + s*j**(2 + epsilon))**2) for j in range(1, 1000000)]))
         sum_j, j = 0, 0
         while sum_j < 0.95*var_sum:
             j += 1
@@ -182,7 +191,8 @@ def get_J(**kwargs):
         J = j
         
     else:
-        sum = zeta(2 + epsilon)
+        # Expansino without correlatino lengt, Eqn (34) in thesis
+        # sum = zeta(2 + epsilon)
         var_sum = zeta(2*(2 + epsilon))
         sum_j, j = 0, 0
         while sum_j < 0.95*var_sum:
@@ -200,8 +210,9 @@ n_in      = kwargs_data["n_in"]      if "n_in"      in kwargs_data else 0.9 # Re
 n_out     = kwargs_data["n_out"]     if "n_out"     in kwargs_data else 1   # Refractive index ouside scatterer
 
 dir  = kwargs_data["dir"]  if "dir"  in kwargs_data else np.array([1.0,0.0]) # Direction of propagation, norm should be 1
-c    = kwargs_data["c"]    if "c"    in kwargs_data else 3*10**10            # Lightspeed in cm
-freq = kwargs_data["freq"] if "freq" in kwargs_data else 10**9               # Frequency of incoming wave in dm
+assert abs(np.linalg.norm(dir) - 1.0) < 1e-10
+c    = kwargs_data["c"]    if "c"    in kwargs_data else 3*10**10            # Lightspeed in cm/s
+freq = kwargs_data["freq"] if "freq" in kwargs_data else 10**9               # Frequency of incoming wave in dm/s
 kappa_0 = 2*np.pi*freq/c
 
 R_tilde   = kwargs_data["R_tilde"]   if "R_tilde"   in kwargs_data else 7.5          # Outer radius PML in cm
@@ -338,7 +349,13 @@ else:
 angles_meas = np.array([i for i in range(K)])/K*2*np.pi
     
     
-def forward_observation(Y, **kwargs):    
+def forward_observation(Y, **kwargs):
+    """
+    Solve the forward problem for parameter values Y
+    :param Y:
+    :param kwargs:
+    :return:
+    """
     alpha_out = kwargs["alpha_out"] if "alpha_out" in kwargs else 1   # Material constant outside scatterer
     n_out     = kwargs["n_out"]     if "n_out"     in kwargs else 1   # Refractive index ouside scatterer
 
@@ -357,59 +374,67 @@ def forward_observation(Y, **kwargs):
     
     data     = kwargs["data"] if "data" in kwargs else False
 
-    if "data" == True:
-      uh_data = fem.Function(V_data)
-      alpha_hat_data, kappa_sqrd_hat_data = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_data, Y)
-  
-      a_data = ufl.inner(alpha_data*alpha_hat_data*A_matrix_data*ufl.grad(u_data), ufl.grad(v_data))*ufl.dx - ufl.inner(kappa_sqrd_data*kappa_sqrd_hat_data*dd_bar_data*u_data, v_data)*ufl.dx
-      bilinear_form_data = fem.form(a_data)
-      A_data = fem.petsc.assemble_matrix(bilinear_form_data, bcs=[bc_data])
-      A_data.assemble()
-          
-      solver_data.setOperators(A_data)
-      solver_data.solve(b_data, uh_data.vector)
-  
-      # Observation operator
-      measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
-      ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
-      measurement_values = []
-      
-      ui_data = fem.Function(V_data)
-      ui_data.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
-      
-      for k in range(len(angles_meas)):
-          smoothing_data = fem.Function(V_data)
-          smoothing_data.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
-          measurement_value = fem.form(ufl.inner((uh_data - ui_data), smoothing_data*kappa_sqrd_hat_data) * ufl.dx)
-          measurement_value_local = fem.assemble_scalar(measurement_value)
-          measurement_value_global = (domain_data.comm.allreduce(measurement_value_local, op=MPI.SUM))
-          measurement_values.append(np.real(measurement_value_global))
+    # if "data" == True:
+    if data == True:
+        start_time = time.time()
+        def pr(str):
+            print(f"[{time.time() - start_time:5.0f}s] {str}")
+        uh_data = fem.Function(V_data)
+        alpha_hat_data, kappa_sqrd_hat_data = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_data, Y)
+        pr(f"build mapping")
+        a_data = ufl.inner(alpha_data*alpha_hat_data*A_matrix_data*ufl.grad(u_data), ufl.grad(v_data))*ufl.dx - ufl.inner(kappa_sqrd_data*kappa_sqrd_hat_data*dd_bar_data*u_data, v_data)*ufl.dx
+        bilinear_form_data = fem.form(a_data)
+        A_data = fem.petsc.assemble_matrix(bilinear_form_data, bcs=[bc_data])
+        A_data.assemble()
+        pr("A_data assemble")
+
+        solver_data.setOperators(A_data)
+        solver_data.solve(b_data, uh_data.vector)
+        pr("solver solve")
+
+        # Observation operator
+        measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
+        ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
+        measurement_values = []
+        pr("do observations")
+
+        ui_data = fem.Function(V_data)
+        ui_data.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
+
+        for k in range(len(angles_meas)):
+            smoothing_data = fem.Function(V_data)
+            smoothing_data.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
+            measurement_value = fem.form(ufl.inner((uh_data - ui_data), smoothing_data*kappa_sqrd_hat_data) * ufl.dx)
+            measurement_value_local = fem.assemble_scalar(measurement_value)
+            measurement_value_global = (domain_data.comm.allreduce(measurement_value_local, op=MPI.SUM))
+            measurement_values.append(np.real(measurement_value_global))
+        pr("done")
   
     else:
-      uh_inv = fem.Function(V_inv)
-      alpha_hat_inv, kappa_sqrd_hat_inv = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_inv, Y)
-  
-      a_inv = ufl.inner(alpha_inv*alpha_hat_inv*A_matrix_inv*ufl.grad(u_inv), ufl.grad(v_inv))*ufl.dx - ufl.inner(kappa_sqrd_inv*kappa_sqrd_hat_inv*dd_bar_inv*u_inv, v_inv)*ufl.dx
-      bilinear_form_inv = fem.form(a_inv)
-      A_inv = fem.petsc.assemble_matrix(bilinear_form_inv, bcs=[bc_inv])
-      A_inv.assemble()
-          
-      solver_inv.setOperators(A_inv)
-      solver_inv.solve(b_inv, uh_inv.vector)
-  
-      # Observation operator
-      measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
-      ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
-      measurement_values = []
-      
-      ui_inv = fem.Function(V_inv)
-      ui_inv.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
-      
-      for k in range(len(angles_meas)):
-          smoothing_inv = fem.Function(V_inv)
-          smoothing_inv.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
-          measurement_value = fem.form(ufl.inner((uh_inv - ui_inv), smoothing_inv*kappa_sqrd_hat_inv) * ufl.dx)
-          measurement_value_local = fem.assemble_scalar(measurement_value)
-          measurement_value_global = (domain_inv.comm.allreduce(measurement_value_local, op=MPI.SUM))
-          measurement_values.append(np.real(measurement_value_global))
+        uh_inv = fem.Function(V_inv)
+        alpha_hat_inv, kappa_sqrd_hat_inv = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_inv, Y)
+
+        a_inv = ufl.inner(alpha_inv*alpha_hat_inv*A_matrix_inv*ufl.grad(u_inv), ufl.grad(v_inv))*ufl.dx - ufl.inner(kappa_sqrd_inv*kappa_sqrd_hat_inv*dd_bar_inv*u_inv, v_inv)*ufl.dx
+        bilinear_form_inv = fem.form(a_inv)
+        A_inv = fem.petsc.assemble_matrix(bilinear_form_inv, bcs=[bc_inv])
+        A_inv.assemble()
+
+        solver_inv.setOperators(A_inv)
+        solver_inv.solve(b_inv, uh_inv.vector)
+
+        # Observation operator
+        measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
+        ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
+        measurement_values = []
+
+        ui_inv = fem.Function(V_inv)
+        ui_inv.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
+
+        for k in range(len(angles_meas)):
+            smoothing_inv = fem.Function(V_inv)
+            smoothing_inv.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
+            measurement_value = fem.form(ufl.inner((uh_inv - ui_inv), smoothing_inv*kappa_sqrd_hat_inv) * ufl.dx)
+            measurement_value_local = fem.assemble_scalar(measurement_value)
+            measurement_value_global = (domain_inv.comm.allreduce(measurement_value_local, op=MPI.SUM))
+            measurement_values.append(np.real(measurement_value_global))
     return np.array(measurement_values)

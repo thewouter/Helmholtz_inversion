@@ -9,7 +9,7 @@ from scipy.stats import uniform, multivariate_normal
 from Helmholtz import *
 
 
-class Sequential_Monte_Carlo():
+class Sequential_Monte_Carlo:
     def __init__(self, meas, var, J, **kwargs):
         self.delta = meas
         self.var   = var # Variance of the noise on the measurments
@@ -143,7 +143,7 @@ class Sequential_Monte_Carlo():
             pickle.dump(self.particles, file)
             pickle.dump(self.weights, file)
         
-        pool = mp.Pool(mp.cpu_count()) # For multiprocessing
+        pool = mp.Pool(mp.cpu_count() // 2) # For multiprocessing
         potent = self.vector_potential(pool, func, kwargs)
         
         while self.T[-1] != 1:
