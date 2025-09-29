@@ -1,5 +1,6 @@
 import multiprocessing
 import time
+from multiprocessing.process import current_process
 
 import numpy as np
 import ufl
@@ -432,7 +433,11 @@ def forward_observation(Y, **kwargs):
         pr("done")
   
     else:
-        pr(f"name: {multiprocessing.Process.name}")
+        # get the current process instance
+        process = current_process()
+        # report the name of the process
+        print(process.name)
+        pr(f"name: {process.name}")
         uh_inv = fem.Function(V_inv)
         alpha_hat_inv, kappa_sqrd_hat_inv = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_inv, Y)
 
