@@ -437,7 +437,7 @@ def forward_observation(Y, **kwargs):
         # get the current process instance
         process = current_process()
         # report the name of the process
-        log = process.name[-1:] == "1"
+        log = process.name[-2:] == ":1"
         pr(f"name: {process.name}", log)
         uh_inv = fem.Function(V_inv)
         alpha_hat_inv, kappa_sqrd_hat_inv = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_inv, Y)
