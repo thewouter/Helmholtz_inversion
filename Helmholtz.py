@@ -14,8 +14,24 @@ This code is made for DOLFINx version 0.5.1.
 '''
 
 freq = 2*10**9
-kwargs_data = {"freq" : freq, "h" : 0.5*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3), "quad" : True, "char_len" : True, "s" : 0.2, "K" : 100, "data" : True}
-kwargs_inv = {"freq" : freq, "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3), "char_len" : True, "s" : 0.2, "K" : 100, "M" : 1000, "data" : False}
+kwargs_data = {
+    "freq" : freq,
+    "h" : 0.5*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3),
+    "quad" : True,
+    "char_len" : True,
+    "s" : 0.2,
+    "K" : 100,
+    "data" : True
+}
+kwargs_inv = {
+    "freq" : freq,
+    "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3),
+    "char_len" : True,
+    "s" : 0.2,
+    "K" : 100,
+    "M" : 127,
+    "data" : False
+}
 
 def u_i(kappa_0, n_out, alpha_out, dir, x): # Amplitude of incoming wave
     return np.e**(complex(0,1)*kappa_0*np.sqrt(n_out/alpha_out)*(dir[0]*x[0] + dir[1]*x[1]))
@@ -381,22 +397,22 @@ def forward_observation(Y, **kwargs):
             print(f"[{time.time() - start_time:5.0f}s] {str}")
         uh_data = fem.Function(V_data)
         alpha_hat_data, kappa_sqrd_hat_data = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_data, Y)
-        pr(f"build mapping")
+        # pr(f"build mapping")
         a_data = ufl.inner(alpha_data*alpha_hat_data*A_matrix_data*ufl.grad(u_data), ufl.grad(v_data))*ufl.dx - ufl.inner(kappa_sqrd_data*kappa_sqrd_hat_data*dd_bar_data*u_data, v_data)*ufl.dx
         bilinear_form_data = fem.form(a_data)
         A_data = fem.petsc.assemble_matrix(bilinear_form_data, bcs=[bc_data])
         A_data.assemble()
-        pr("A_data assemble")
+        # pr("A_data assemble")
 
         solver_data.setOperators(A_data)
         solver_data.solve(b_data, uh_data.vector)
-        pr("solver solve")
+        # pr("solver solve")
 
         # Observation operator
         measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
         ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
         measurement_values = []
-        pr("do observations")
+        # pr("do observations")
 
         ui_data = fem.Function(V_data)
         ui_data.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
@@ -408,7 +424,7 @@ def forward_observation(Y, **kwargs):
             measurement_value_local = fem.assemble_scalar(measurement_value)
             measurement_value_global = (domain_data.comm.allreduce(measurement_value_local, op=MPI.SUM))
             measurement_values.append(np.real(measurement_value_global))
-        pr("done")
+        # pr("done")
   
     else:
         uh_inv = fem.Function(V_inv)
