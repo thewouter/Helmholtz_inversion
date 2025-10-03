@@ -10,6 +10,7 @@ from dolfinx import fem, geometry
 from dolfinx.fem.petsc import assemble_matrix, assemble_vector, set_bc
 from petsc4py import PETSc
 from Generate_Mesh import *
+from functions import save
 
 '''
 This code is made for DOLFINx version 0.5.1.
@@ -18,9 +19,9 @@ This code is made for DOLFINx version 0.5.1.
 freq = 2*10**9
 kwargs_data = {
     "freq" : freq,
-    "h" : 0.5*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3),
-    # "h" : 0.5*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3 * 10),
-    "quad" : True,
+    "h" : 0.9*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3),
+    # "h" : 0.5*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3 * 5),
+    "quad" : False,
     "char_len" : True,
     "s" : 0.2,
     "K" : 100,
@@ -29,7 +30,7 @@ kwargs_data = {
 kwargs_inv = {
     "freq" : freq,
     "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3),
-    # "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3) * 10,
+    # "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3) * 5,
     "char_len" : True,
     "s" : 0.2,
     "K" : 100,
@@ -369,8 +370,48 @@ else:
     J = j
 
 angles_meas = np.array([i for i in range(K)])/K*2*np.pi
-    
-    
+
+
+def bspline(x, x0, width):
+    x_centered = x - x0
+    r = np.linalg.norm(x_centered, axis=0)
+    return np.maximum(3/(width**2*np.pi) - 3*r/(width**3*np.pi), 0)
+
+    return (np.linalg.norm(x_centered, axis=1) < width) / (width**2 * np.pi)
+
+#
+# a = fem.Function(V_inv)
+# a.interpolate(lambda x: bspline(x, np.array([0, 0, 0])[:, None], 0.5))
+# save(a, "a.xdmf")
+
+
+# Generate the observation vectors
+r1 = kwargs_inv["r1"] if "r1" in kwargs_inv else 6  # Radius of measured points in physical domain in dm, must
+# be greater than 1.5*r0, smaller than R I put it larger than R, dunno if thats gonna make it shit
+
+vectors = []
+for angle in angles_meas:
+    observation_function = fem.Function(V_inv)
+    observation_function.interpolate(lambda x: bspline(x, np.array([r1*np.cos(angle), r1*np.sin(angle), 0])[:, None], 0.5))
+    L_observation = ufl.inner(observation_function, v_inv) * ufl.dx
+    vec = assemble_vector(fem.form(L_observation))
+    # save(observation_function, "a.xdmf")
+    vectors.append(vec.array)
+
+vectors = np.array(vectors)
+observation_matrix = PETSc.Mat().create()
+observation_matrix.setType(PETSc.Mat.Type.AIJ)  # sparse format
+observation_matrix.setSizes(vectors.shape)     # global dimensions
+observation_matrix.setUp()
+
+nonzero_items = vectors.nonzero()
+max_per_row = np.unique(nonzero_items[0], return_counts=True)[1].max()
+observation_matrix.setPreallocationNNZ(max_per_row)
+
+for x,y in zip(nonzero_items[0], nonzero_items[1]):
+    observation_matrix.setValue(x, y, vectors[x,y])
+observation_matrix.assemble()
+
 def forward_observation(Y, **kwargs):
     """
     Solve the forward problem for parameter values Y
@@ -387,8 +428,7 @@ def forward_observation(Y, **kwargs):
     kappa_0 = 2*np.pi*freq/c
 
     r0        = kwargs["r0"]        if "r0"        in kwargs else 1            # Radius of reference configuration in cm (scaling because of numerical underflow)
-    r1        = kwargs["r1"]        if "r1"        in kwargs else 6            # Radius of measured points in physical domain in dm, must be greater than 1.5*r0, smaller than R
-    R         = kwargs["R"]         if "R"         in kwargs else 7            # Radius of coordinate transformation domain D_R in cm
+    R         = kwargs["R"]         if "R"         in kwargs else 5            # Radius of coordinate transformation domain D_R in cm
     
     epsilon  = kwargs["epsilon"]  if "epsilon"  in kwargs else 0.001 # Small number greater than zero for convergence of radius expansion
     char_len = kwargs["char_len"] if "char_len" in kwargs else False # Determines type of expansion
@@ -432,12 +472,11 @@ def forward_observation(Y, **kwargs):
             measurement_value_global = (domain_data.comm.allreduce(measurement_value_local, op=MPI.SUM))
             measurement_values.append(np.real(measurement_value_global))
         pr("done")
-  
     else:
         # get the current process instance
         process = current_process()
         # report the name of the process
-        log = process.name[-2:] == ":1"
+        log = process.name[-2:] == "-1"
         pr(f"name: {process.name}", log)
         uh_inv = fem.Function(V_inv)
         alpha_hat_inv, kappa_sqrd_hat_inv = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_inv, Y)
@@ -455,23 +494,29 @@ def forward_observation(Y, **kwargs):
         # Observation operator
         measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
         ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
-        measurement_values = []
         pr("do observations", log)
 
         ui_inv = fem.Function(V_inv)
         ui_inv.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
-
+        pr("starting observations", log)
+        measurement_values = []
         for k in range(len(angles_meas)):
-            pr(1, log)
+            # pr(1, log)
             smoothing_inv = fem.Function(V_inv)
             smoothing_inv.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
-            pr(1.5, log)
+            # pr(1.5, log)
             measurement_value = fem.form(ufl.inner((uh_inv - ui_inv), smoothing_inv*kappa_sqrd_hat_inv) * ufl.dx)
-            pr(1.6, log)
+            # pr(1.6, log)
             measurement_value_local = fem.assemble_scalar(measurement_value)
-            pr(2, log)
+            # pr(2, log)
             measurement_value_global = (domain_inv.comm.allreduce(measurement_value_local, op=MPI.SUM))
-            pr(3, log)
+            # pr(3, log)
             measurement_values.append(np.real(measurement_value_global))
-            pr(4, log)
+            # pr(4, log)
+        pr("Starting alternative observations", log)
+        res_vec = observation_matrix.createVecLeft()
+        observation_matrix.mult(uh_inv.vector - ui_inv.vector, res_vec)
+        pr("done", log)
+        vals = np.array(measurement_values)
+        tot = np.array([vals, np.real(res_vec.array)]).transpose()
     return np.array(measurement_values)

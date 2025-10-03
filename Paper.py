@@ -88,7 +88,8 @@ if __name__ == '__main__':
     helm_data = forward_observation(Y_data, **kwargs_data)
     print(helm_data)
 
-    var       = abs(np.mean(helm_data)*0.001)
+    # var       = abs(np.mean(helm_data)*0.001)
+    var       = 1e-3  # Fixed value
     eta       = multivariate_normal(mean=np.zeros(len(helm_data)), cov=var*np.eye(len(helm_data))).rvs()
     delta_1   = helm_data        # zero noise realisation
     delta_2   = helm_data + eta

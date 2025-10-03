@@ -143,8 +143,8 @@ class Sequential_Monte_Carlo:
             pickle.dump(self.particles, file)
             pickle.dump(self.weights, file)
         
-        pool = mp.Pool(mp.cpu_count() // 2) # For multiprocessing
-        # pool = mp.Pool(10) # For multiprocessing
+        # pool = mp.Pool(mp.cpu_count() // 2) # For multiprocessing
+        pool = mp.Pool(2) # For multiprocessing
         potent = self.vector_potential(pool, func, kwargs)
         
         while self.T[-1] != 1:

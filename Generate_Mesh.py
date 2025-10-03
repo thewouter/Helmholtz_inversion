@@ -13,7 +13,7 @@ This code is made for DOLFINx version 0.5.1.
 class Generate_Mesh:
     def __init__(self, **kwargs):
         self.r0      = kwargs["r0"]      if "r0"      in kwargs else 1            # Radius of reference configuration in cm (scaling because of numerical underflow)
-        self.R       = kwargs["R"]       if "R"       in kwargs else 7            # Radius of coordinate transformation domain D_R in cm
+        self.R       = kwargs["R"]       if "R"       in kwargs else 5            # Radius of coordinate transformation domain D_R in cm
         self.R_tilde = kwargs["R_tilde"] if "R_tilde" in kwargs else 7.5          # Radius where PML absorption starts in cm
         self.R_PML   = kwargs["R_PML"]   if "R_PML"   in kwargs else 11           # Outer radius PML in cm
         self.gdim    = kwargs["gdim"]    if "gdim"    in kwargs else 2            # Geometric dimension of the mesh
