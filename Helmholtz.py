@@ -416,7 +416,7 @@ vectors = []
 for angle in angles_meas:
     observation_function = fem.Function(V_data)
     observation_function.interpolate(lambda x: bspline(x, np.array([r1*np.cos(angle), r1*np.sin(angle), 0])[:, None], 0.5))
-    L_observation = ufl.inner(observation_function, v_inv) * ufl.dx
+    L_observation = ufl.inner(observation_function, v_data) * ufl.dx
     vec = assemble_vector(fem.form(L_observation))
     # save(observation_function, "a.xdmf")
     vectors.append(vec.array)
