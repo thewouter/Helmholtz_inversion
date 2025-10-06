@@ -498,8 +498,8 @@ def forward_observation(Y, **kwargs):
         #     measurement_value_global = (domain_data.comm.allreduce(measurement_value_local, op=MPI.SUM))
         #     measurement_values.append(np.real(measurement_value_global))
         pr("Starting alternative observations")
-        res_vec = observation_matrix_inv.createVecLeft()
-        observation_matrix_inv.mult(uh_data.vector - ui_data.vector, res_vec)
+        res_vec = observation_matrix.createVecLeft()
+        observation_matrix.mult(uh_data.vector - ui_data.vector, res_vec)
         measurement_values = np.real(res_vec.array)
         pr("done")
     else:
