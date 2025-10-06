@@ -409,7 +409,7 @@ max_per_row = np.unique(nonzero_items[0], return_counts=True)[1].max()
 observation_matrix_inv.setPreallocationNNZ(max_per_row)
 
 for x,y in zip(nonzero_items[0], nonzero_items[1]):
-    observation_matrix_inv.setValue(x, y, vectors[x,y])
+    observation_matrix_inv.setValue(x, y, vectors_inv[x,y])
 observation_matrix_inv.assemble()
 
 vectors = []
