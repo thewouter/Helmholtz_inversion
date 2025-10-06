@@ -389,14 +389,14 @@ def bspline(x, x0, width):
 r1 = kwargs_inv["r1"] if "r1" in kwargs_inv else 6  # Radius of measured points in physical domain in dm, must
 # be greater than 1.5*r0, smaller than R I put it larger than R, dunno if thats gonna make it shit
 
-vectors = []
+vectors_inv = []
 for angle in angles_meas:
     observation_function = fem.Function(V_inv)
     observation_function.interpolate(lambda x: bspline(x, np.array([r1*np.cos(angle), r1*np.sin(angle), 0])[:, None], 0.5))
     L_observation = ufl.inner(observation_function, v_inv) * ufl.dx
     vec = assemble_vector(fem.form(L_observation))
     # save(observation_function, "a.xdmf")
-    vectors.append(vec.array)
+    vectors_inv.append(vec.array)
 
 vectors_inv = np.array(vectors_inv)
 observation_matrix_inv = PETSc.Mat().create()
@@ -411,6 +411,15 @@ observation_matrix_inv.setPreallocationNNZ(max_per_row)
 for x,y in zip(nonzero_items[0], nonzero_items[1]):
     observation_matrix_inv.setValue(x, y, vectors[x,y])
 observation_matrix_inv.assemble()
+
+vectors = []
+for angle in angles_meas:
+    observation_function = fem.Function(V_inv)
+    observation_function.interpolate(lambda x: bspline(x, np.array([r1*np.cos(angle), r1*np.sin(angle), 0])[:, None], 0.5))
+    L_observation = ufl.inner(observation_function, v_inv) * ufl.dx
+    vec = assemble_vector(fem.form(L_observation))
+    # save(observation_function, "a.xdmf")
+    vectors.append(vec.array)
 
 vectors = np.array(vectors)
 observation_matrix = PETSc.Mat().create()
