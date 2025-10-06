@@ -398,6 +398,20 @@ for angle in angles_meas:
     # save(observation_function, "a.xdmf")
     vectors.append(vec.array)
 
+vectors_inv = np.array(vectors_inv)
+observation_matrix_inv = PETSc.Mat().create()
+observation_matrix_inv.setType(PETSc.Mat.Type.AIJ)  # sparse format
+observation_matrix_inv.setSizes(vectors_inv.shape)     # global dimensions
+observation_matrix_inv.setUp()
+
+nonzero_items = vectors_inv.nonzero()
+max_per_row = np.unique(nonzero_items[0], return_counts=True)[1].max()
+observation_matrix_inv.setPreallocationNNZ(max_per_row)
+
+for x,y in zip(nonzero_items[0], nonzero_items[1]):
+    observation_matrix_inv.setValue(x, y, vectors[x,y])
+observation_matrix_inv.assemble()
+
 vectors = np.array(vectors)
 observation_matrix = PETSc.Mat().create()
 observation_matrix.setType(PETSc.Mat.Type.AIJ)  # sparse format
@@ -411,6 +425,12 @@ observation_matrix.setPreallocationNNZ(max_per_row)
 for x,y in zip(nonzero_items[0], nonzero_items[1]):
     observation_matrix.setValue(x, y, vectors[x,y])
 observation_matrix.assemble()
+
+ui_inv = fem.Function(V_inv)
+ui_inv.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
+
+ui_data = fem.Function(V_data)
+ui_data.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
 
 def forward_observation(Y, **kwargs):
     """
@@ -457,27 +477,28 @@ def forward_observation(Y, **kwargs):
 
         # Observation operator
         measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
-        ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
-        measurement_values = []
-        pr("do observations")
+        # ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
+        # measurement_values = []
+        # pr("do observations")
 
-        ui_data = fem.Function(V_data)
-        ui_data.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
-
-        for k in range(len(angles_meas)):
-            smoothing_data = fem.Function(V_data)
-            smoothing_data.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
-            measurement_value = fem.form(ufl.inner((uh_data - ui_data), smoothing_data*kappa_sqrd_hat_data) * ufl.dx)
-            measurement_value_local = fem.assemble_scalar(measurement_value)
-            measurement_value_global = (domain_data.comm.allreduce(measurement_value_local, op=MPI.SUM))
-            measurement_values.append(np.real(measurement_value_global))
+        # for k in range(len(angles_meas)):
+        #     smoothing_data = fem.Function(V_data)
+        #     smoothing_data.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
+        #     measurement_value = fem.form(ufl.inner((uh_data - ui_data), smoothing_data*kappa_sqrd_hat_data) * ufl.dx)
+        #     measurement_value_local = fem.assemble_scalar(measurement_value)
+        #     measurement_value_global = (domain_data.comm.allreduce(measurement_value_local, op=MPI.SUM))
+        #     measurement_values.append(np.real(measurement_value_global))
+        pr("Starting alternative observations")
+        res_vec = observation_matrix_inv.createVecLeft()
+        observation_matrix_inv.mult(uh_data.vector - ui_data.vector, res_vec)
+        measurement_values = np.real(res_vec.array)
         pr("done")
     else:
         # get the current process instance
         process = current_process()
         # report the name of the process
         log = process.name[-2:] == "-1"
-        pr(f"name: {process.name}", log)
+        # pr(f"name: {process.name}", log)
         uh_inv = fem.Function(V_inv)
         alpha_hat_inv, kappa_sqrd_hat_inv = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_inv, Y)
 
@@ -485,38 +506,37 @@ def forward_observation(Y, **kwargs):
         bilinear_form_inv = fem.form(a_inv)
         A_inv = fem.petsc.assemble_matrix(bilinear_form_inv, bcs=[bc_inv])
         A_inv.assemble()
-        pr("build mapping", log)
+        # pr("build mapping", log)
 
         solver_inv.setOperators(A_inv)
         solver_inv.solve(b_inv, uh_inv.vector)
-        pr(f"Solved inverse", log)
+        # pr(f"Solved inverse", log)
 
         # Observation operator
-        measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
-        ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
-        pr("do observations", log)
+        # measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
+        # ref_measurement_points = Phi_inv(R, r0, char_len, s, epsilon, J, sum, Y, measurement_points)
+        # pr("do observations", log)
 
-        ui_inv = fem.Function(V_inv)
-        ui_inv.interpolate(lambda x: u_i(kappa_0, n_out, alpha_out, dir, x))
-        pr("starting observations", log)
-        measurement_values = []
-        for k in range(len(angles_meas)):
-            # pr(1, log)
-            smoothing_inv = fem.Function(V_inv)
-            smoothing_inv.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
-            # pr(1.5, log)
-            measurement_value = fem.form(ufl.inner((uh_inv - ui_inv), smoothing_inv*kappa_sqrd_hat_inv) * ufl.dx)
-            # pr(1.6, log)
-            measurement_value_local = fem.assemble_scalar(measurement_value)
-            # pr(2, log)
-            measurement_value_global = (domain_inv.comm.allreduce(measurement_value_local, op=MPI.SUM))
-            # pr(3, log)
-            measurement_values.append(np.real(measurement_value_global))
-            # pr(4, log)
-        pr("Starting alternative observations", log)
-        res_vec = observation_matrix.createVecLeft()
-        observation_matrix.mult(uh_inv.vector - ui_inv.vector, res_vec)
-        pr("done", log)
-        vals = np.array(measurement_values)
-        tot = np.array([vals, np.real(res_vec.array)]).transpose()
+        # pr("starting observations", log)
+        # measurement_values = []
+        # for k in range(len(angles_meas)):
+        #     # pr(1, log)
+        #     smoothing_inv = fem.Function(V_inv)
+        #     smoothing_inv.interpolate(lambda x: 1/(2*np.pi*sigma_smooth**2)*np.e**(-((x[0] - ref_measurement_points[0,k])**2 + (x[1] - ref_measurement_points[1,k])**2)/(2*sigma_smooth**2)))
+        #     # pr(1.5, log)
+        #     measurement_value = fem.form(ufl.inner((uh_inv - ui_inv), smoothing_inv*kappa_sqrd_hat_inv) * ufl.dx)
+        #     # pr(1.6, log)
+        #     measurement_value_local = fem.assemble_scalar(measurement_value)
+        #     # pr(2, log)
+        #     measurement_value_global = (domain_inv.comm.allreduce(measurement_value_local, op=MPI.SUM))
+        #     # pr(3, log)
+        #     measurement_values.append(np.real(measurement_value_global))
+        #     pr(4, log)
+        # pr("Starting alternative observations", log)
+        res_vec = observation_matrix_inv.createVecLeft()
+        observation_matrix_inv.mult(uh_inv.vector - ui_inv.vector, res_vec)
+        measurement_values = np.real(res_vec.array)
+        # pr("done", log)
+        # vals = np.array(measurement_values)
+        # tot = np.array([vals, np.real(res_vec.array)]).transpose()
     return np.array(measurement_values)
