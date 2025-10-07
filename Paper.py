@@ -1,6 +1,6 @@
 from Sequential_Monte_Carlo import *
 import numpy as np
-
+np.random.seed(seed=0)
 
 def rotation_matrix(K, theta = np.pi/2): # Source algorithm: https://analyticphysics.com/Higher%20Dimensions/Rotations%20in%20Higher%20Dimensions.htm
     # input vectors
