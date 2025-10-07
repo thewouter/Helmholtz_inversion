@@ -20,7 +20,7 @@ delta_2   = objects[5]
 particles = objects[1]
 
 run_1 = []
-with (open("/home/wouter/Downloads/post.pickle", "rb")) as openfile:
+with (open("/home/wouter/Downloads/a.pickle", "rb")) as openfile:
     while True:
         try:
             run_1.append(pickle.load(openfile))
@@ -30,16 +30,16 @@ with (open("/home/wouter/Downloads/post.pickle", "rb")) as openfile:
 particles_1 = run_1[0]
 weights_1   = run_1[1]
 
-# run_2 = []
-# with (open("Data/20250119-213939_Posterior.pickle", "rb")) as openfile:
-#     while True:
-#         try:
-#             run_2.append(pickle.load(openfile))
-#         except EOFError:
-#             break
-#
-# particles_2 = run_2[0]
-# weights_2   = run_2[1]
+run_2 = []
+with (open("/home/wouter/Downloads/b.pickle", "rb")) as openfile:
+    while True:
+        try:
+            run_2.append(pickle.load(openfile))
+        except EOFError:
+            break
+
+particles_2 = run_2[0]
+weights_2   = run_2[1]
 
 colors = ['red','teal','goldenrod','orchid','wheat','darkgreen','aquamarine','crimson','orange','silver','plum','lightblue','lavender','lightgreen','pink','coral','khaki','violet','sienna','indigo']
 
@@ -61,16 +61,16 @@ for i in range(1,len(Y_data)+1):
     plt.xlim((-1,1))
 
 plt.savefig("Run_1", dpi=600)
-#
-# for i in range(1,len(Y_data)+1):
-#     plt.subplot(3,4,i)
-#     plt.hist(particles_2[:,i-1], weights=weights_2, color=colors[i-1])
-#     plt.title('$Y_{{{}}}$ = {:.5f}'.format(i, Y_data[i-1]))
-#     plt.vlines(Y_data[i-1],-0.01,0.5)
-#     plt.grid()
-#     plt.xlim((-1,1))
-#
-# plt.savefig("Run_2")
+
+for i in range(1,len(Y_data)+1):
+    plt.subplot(3,4,i)
+    plt.hist(particles_2[:,i-1], weights=weights_2, color=colors[i-1])
+    plt.title('$Y_{{{}}}$ = {:.5f}'.format(i, Y_data[i-1]))
+    plt.vlines(Y_data[i-1],-0.01,0.5)
+    plt.grid()
+    plt.xlim((-1,1))
+
+plt.savefig("Run_2", dpi=600)
 
 '''
 ## Plot Radii Main Project
