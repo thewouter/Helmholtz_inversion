@@ -51,11 +51,16 @@ class Sequential_Monte_Carlo:
 
     def reweight(self, potent):
         self.weights = np.exp(np.log(self.weights) + (self.T[-1]-self.T[-2])*potent) # Update is done in log−scale
+        if np.sum(self.weights) == 0:
+            print(f"uhhhhh")
         self.weights /= np.sum(self.weights) # normalize weights
+
 
 
     def effective_sample_size_after_reweight(self, potent, mid_tmp):
         weights_tmp  = np.exp(np.log(self.weights) + (mid_tmp-self.T[-1])*potent)
+        if np.sum(self.weights) == 0:
+            print(f"uhhhhh")
         weights_tmp /= np.sum(weights_tmp)
         return 1/np.dot(weights_tmp, weights_tmp)
 
@@ -143,8 +148,8 @@ class Sequential_Monte_Carlo:
             pickle.dump(self.particles, file)
             pickle.dump(self.weights, file)
         
-        # pool = mp.Pool(mp.cpu_count() // 2) # For multiprocessing
-        pool = mp.Pool(128) # For multiprocessing
+        pool = mp.Pool(mp.cpu_count() // 2) # For multiprocessing
+        # pool = mp.Pool(128) # For multiprocessing
         potent = self.vector_potential(pool, func, kwargs)
         
         while self.T[-1] != 1:
