@@ -19,8 +19,8 @@ This code is made for DOLFINx version 0.5.1.
 freq = 2*10**9
 kwargs_data = {
     "freq" : freq,
-    "h" : 0.9*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3),
-    # "h" : 0.5*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3 * 5),
+    # "h" : 0.9*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3),
+    "h" : 0.9*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3 * 10),
     "quad" : False,
     "char_len" : True,
     "s" : 0.2,
@@ -29,8 +29,8 @@ kwargs_data = {
 }
 kwargs_inv = {
     "freq" : freq,
-    "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3),
-    # "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3) * 5,
+    # "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3),
+    "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3) * 10,
     "char_len" : True,
     "s" : 0.2,
     "K" : 100,
@@ -507,7 +507,7 @@ def forward_observation(Y, **kwargs):
         process = current_process()
         # report the name of the process
         log = process.name[-2:] == "-1"
-        # pr(f"name: {process.name}", log)
+        pr(f"name: {process.name}", log)
         uh_inv = fem.Function(V_inv)
         alpha_hat_inv, kappa_sqrd_hat_inv = build_mapping(R, r0, char_len, s, epsilon, J, sum, Q_inv, Y)
 
@@ -515,11 +515,11 @@ def forward_observation(Y, **kwargs):
         bilinear_form_inv = fem.form(a_inv)
         A_inv = fem.petsc.assemble_matrix(bilinear_form_inv, bcs=[bc_inv])
         A_inv.assemble()
-        # pr("build mapping", log)
+        pr("build mapping", log)
 
         solver_inv.setOperators(A_inv)
         solver_inv.solve(b_inv, uh_inv.vector)
-        # pr(f"Solved inverse", log)
+        pr(f"Solved inverse", log)
 
         # Observation operator
         # measurement_points =  np.array([r1*np.cos(angles_meas), r1*np.sin(angles_meas)])
@@ -541,11 +541,11 @@ def forward_observation(Y, **kwargs):
         #     # pr(3, log)
         #     measurement_values.append(np.real(measurement_value_global))
         #     pr(4, log)
-        # pr("Starting alternative observations", log)
+        pr("Starting alternative observations", log)
         res_vec = observation_matrix_inv.createVecLeft()
         observation_matrix_inv.mult(uh_inv.vector - ui_inv.vector, res_vec)
         measurement_values = np.real(res_vec.array)
-        # pr("done", log)
+        pr("done", log)
         # vals = np.array(measurement_values)
         # tot = np.array([vals, np.real(res_vec.array)]).transpose()
     return np.array(measurement_values)

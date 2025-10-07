@@ -110,10 +110,10 @@ if __name__ == '__main__':
     #               "M" : 1000,
     #               "data" : False}
     #
-    smc_1 = Sequential_Monte_Carlo(delta_1, var, J)
+    smc_1 = Sequential_Monte_Carlo(delta_1, var, J, **kwargs_inv)
     smc_1.SMC_algorithm(forward_observation, kwargs_inv)
 
-    smc_2 = Sequential_Monte_Carlo(delta_2, var, J)
+    smc_2 = Sequential_Monte_Carlo(delta_2, var, J, **kwargs_inv)
     smc_2.SMC_algorithm(forward_observation, kwargs_inv)
 
 
