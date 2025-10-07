@@ -19,7 +19,7 @@ This code is made for DOLFINx version 0.5.1.
 freq = 2*10**9
 kwargs_data = {
     "freq" : freq,
-    "h" : 0.9*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3),
+    "h" : 0.9*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3)*2,
     # "h" : 0.9*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3 * 10),
     "quad" : False,
     "char_len" : True,
@@ -29,7 +29,7 @@ kwargs_data = {
 }
 kwargs_inv = {
     "freq" : freq,
-    "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3),
+    "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3)*2,
     # "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3) * 10,
     "char_len" : True,
     "s" : 0.2,
