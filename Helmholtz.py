@@ -34,7 +34,7 @@ kwargs_inv = {
     "char_len" : True,
     "s" : 0.2,
     "K" : 100,
-    "M" : 127,
+    "M" : 1000,
     "data" : False
 }
 
