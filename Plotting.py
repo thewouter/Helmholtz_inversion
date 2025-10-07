@@ -4,7 +4,7 @@ import pickle
 
 
 objects = []
-with (open("/home/wouter/Downloads/param.pickle", "rb")) as openfile:
+with (open("/home/wouter/Downloads/param2.pickle", "rb")) as openfile:
     while True:
         try:
             objects.append(pickle.load(openfile))
@@ -20,7 +20,7 @@ delta_2   = objects[5]
 particles = objects[1]
 
 run_1 = []
-with (open("/home/wouter/Downloads/a.pickle", "rb")) as openfile:
+with (open("/home/wouter/Downloads/1.pickle", "rb")) as openfile:
     while True:
         try:
             run_1.append(pickle.load(openfile))
@@ -31,7 +31,7 @@ particles_1 = run_1[0]
 weights_1   = run_1[1]
 
 run_2 = []
-with (open("/home/wouter/Downloads/b.pickle", "rb")) as openfile:
+with (open("/home/wouter/Downloads/2.pickle", "rb")) as openfile:
     while True:
         try:
             run_2.append(pickle.load(openfile))

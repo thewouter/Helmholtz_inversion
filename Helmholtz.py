@@ -24,7 +24,7 @@ kwargs_data = {
     "quad" : False,
     "char_len" : True,
     "s" : 0.2,
-    "K" : 10,
+    "K" : 100,
     "data" : True
 }
 kwargs_inv = {
@@ -33,7 +33,7 @@ kwargs_inv = {
     # "h" : np.sqrt((1/2**3)**2 * (10**9/freq)**3) * 10,
     "char_len" : True,
     "s" : 0.2,
-    "K" : 10,
+    "K" : 100,
     "M" : 1000,
     "data" : False
 }
