@@ -27,7 +27,7 @@ with (open("/home/wouter/Downloads/1.pickle", "rb")) as openfile:
         except EOFError:
             break
 
-particles_1 = run_1[0]
+particles_1: np.ndarray = run_1[0]
 weights_1   = run_1[1]
 
 run_2 = []
@@ -60,7 +60,7 @@ for i in range(1,len(Y_data)+1):
     plt.grid()
     plt.xlim((-1,1))
 
-plt.savefig("Run_1", dpi=600)
+plt.savefig(f"var_{var}_M_{particles_1.shape[0]}_K_{len(particles)}_nonoise.png", dpi=600)
 
 for i in range(1,len(Y_data)+1):
     plt.subplot(3,4,i)
@@ -70,7 +70,7 @@ for i in range(1,len(Y_data)+1):
     plt.grid()
     plt.xlim((-1,1))
 
-plt.savefig("Run_2", dpi=600)
+plt.savefig(f"var_{var}_M_{particles_1.shape[0]}_K_{len(particles)}_noise.png", dpi=600)
 
 '''
 ## Plot Radii Main Project
