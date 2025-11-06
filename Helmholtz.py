@@ -24,7 +24,7 @@ kwargs_data = {
     "quad" : False,
     "char_len" : True,
     "s" : 0.2,
-    "K" : 9,
+    "K" : 100,
     "dir" : np.array([1,1]) / np.sqrt(2),
     "data" : True
 }
@@ -35,7 +35,7 @@ kwargs_inv = {
     "char_len" : True,
     "dir" : np.array([1,1]) / np.sqrt(2),
     "s" : 0.2,
-    "K" : 9,
+    "K" : 100,
     "M" : 1000,
     "data" : False
 }
