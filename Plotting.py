@@ -2,9 +2,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 
+from scipy.stats import gaussian_kde
+
+# param_file, nonoise_file, noise_file = ("/home/wouter/Downloads/e/param.pickle",
+#                                         "/home/wouter/Downloads/e/nonoise.pickle",
+#                                         "/home/wouter/Downloads/e/noise.pickle")
+
+# param_file, nonoise_file, noise_file = ("/home/wouter/Downloads/f/param.pickle",
+#                                         "/home/wouter/Downloads/f/nonoise.pickle",
+#                                         "/home/wouter/Downloads/f/noise.pickle")
+
+# param_file, nonoise_file, noise_file = ("/home/wouter/Downloads/g/param.pickle",
+#                                         "/home/wouter/Downloads/g/nonoise.pickle",
+#                                         "/home/wouter/Downloads/g/noise.pickle")
+
+param_file, nonoise_file, noise_file = ("/home/wouter/Downloads/h/param.pickle",
+                                        "/home/wouter/Downloads/h/nonoise.pickle",
+                                        "/home/wouter/Downloads/h/noise.pickle")
 
 objects = []
-with (open("/home/wouter/Downloads/param2.pickle", "rb")) as openfile:
+with (open(param_file, "rb")) as openfile:
     while True:
         try:
             objects.append(pickle.load(openfile))
@@ -20,7 +37,7 @@ delta_2   = objects[5]
 particles = objects[1]
 
 run_1 = []
-with (open("/home/wouter/Downloads/1.pickle", "rb")) as openfile:
+with (open(nonoise_file, "rb")) as openfile:
     while True:
         try:
             run_1.append(pickle.load(openfile))
@@ -31,7 +48,7 @@ particles_1: np.ndarray = run_1[0]
 weights_1   = run_1[1]
 
 run_2 = []
-with (open("/home/wouter/Downloads/2.pickle", "rb")) as openfile:
+with (open(noise_file, "rb")) as openfile:
     while True:
         try:
             run_2.append(pickle.load(openfile))
@@ -52,25 +69,52 @@ print('Emperical variance:')
 print(np.var(particles_1,axis=0))
 # print(np.var(particles_2,axis=0))
 
-for i in range(1,len(Y_data)+1):
-    plt.subplot(3,4,i)
-    plt.hist(particles_1[:,i-1], weights=weights_1, color=colors[i-1])
-    plt.title('$Y_{{{}}}$ = {:.5f}'.format(i, Y_data[i-1]))
-    plt.vlines(Y_data[i-1],-0.01,0.5)
-    plt.grid()
-    plt.xlim((-1,1))
+def plot_run(particles, weights, Y_data, fname):
+    fig, axs = plt.subplots(3, 4, figsize=(10,7), sharex=True, sharey=True)
+    axs = axs.ravel()
 
-plt.savefig(f"var_{var}_M_{particles_1.shape[0]}_K_{len(particles)}_nonoise.png", dpi=600)
+    # normalize weights
+    weights = weights / np.sum(weights)
 
-for i in range(1,len(Y_data)+1):
-    plt.subplot(3,4,i)
-    plt.hist(particles_2[:,i-1], weights=weights_2, color=colors[i-1])
-    plt.title('$Y_{{{}}}$ = {:.5f}'.format(i, Y_data[i-1]))
-    plt.vlines(Y_data[i-1],-0.01,0.5)
-    plt.grid()
-    plt.xlim((-1,1))
+    for i in range(len(Y_data)):
+        x = particles[:,i]
+        kde = gaussian_kde(x, weights=weights)
+        N = 500
+        xs = np.linspace(-3,3,3 * N)
+        kde_values = kde(xs)
+        kde_values = kde_values[N-1::-1] + kde_values[N:2*N] + kde_values[-1:2*N - 1:-1]
+        axs[i].plot(xs[N:2*N], kde_values)
+        axs[i].axvline(Y_data[i], linestyle='--', color='black')
+        axs[i].set_title(f"$Y_{{{i+1}}}$ = {Y_data[i]:.5f}")
+        axs[i].grid(alpha=0.2)
 
-plt.savefig(f"var_{var}_M_{particles_1.shape[0]}_K_{len(particles)}_noise.png", dpi=600)
+    plt.tight_layout()
+    plt.savefig(fname, dpi=600)
+    plt.close()
+
+plot_run(particles_1, weights_1, Y_data, f"var_{var}_M_{particles_1.shape[0]}_K_{len(particles)}_nonoise.png")
+plot_run(particles_2, weights_2, Y_data, f"var_{var}_M_{particles_1.shape[0]}_K_{len(particles)}_noise.png")
+
+#
+# for i in range(1,len(Y_data)+1):
+#     plt.subplot(3,4,i)
+#     plt.hist(particles_1[:,i-1], weights=weights_1, color=colors[i-1])
+#     plt.title('$Y_{{{}}}$ = {:.5f}'.format(i, Y_data[i-1]))
+#     plt.vlines(Y_data[i-1],-0.01,0.5)
+#     plt.grid()
+#     plt.xlim((-1,1))
+#
+# plt.savefig(f"var_{var}_M_{particles_1.shape[0]}_K_{len(particles)}_nonoise.png", dpi=600)
+#
+# for i in range(1,len(Y_data)+1):
+#     plt.subplot(3,4,i)
+#     plt.hist(particles_2[:,i-1], weights=weights_2, color=colors[i-1])
+#     plt.title('$Y_{{{}}}$ = {:.5f}'.format(i, Y_data[i-1]))
+#     plt.vlines(Y_data[i-1],-0.01,0.5)
+#     plt.grid()
+#     plt.xlim((-1,1))
+#
+# plt.savefig(f"var_{var}_M_{particles_1.shape[0]}_K_{len(particles)}_noise.png", dpi=600)
 
 '''
 ## Plot Radii Main Project
