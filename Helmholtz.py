@@ -16,7 +16,7 @@ from functions import save
 This code is made for DOLFINx version 0.5.1.
 '''
 
-freq = 2*10**9
+freq = 2 * 2*10**9
 kwargs_data = {
     "freq" : freq,
     "h" : 0.9*np.sqrt((1/2**3)**2 * (10**9/(2*10**9))**3)*2,
@@ -24,7 +24,7 @@ kwargs_data = {
     "quad" : False,
     "char_len" : True,
     "s" : 0.2,
-    "K" : 9,
+    "K" : 100,
     "dir" : np.array([1,1]) / np.sqrt(2),
     "data" : True
 }
@@ -35,7 +35,7 @@ kwargs_inv = {
     "char_len" : True,
     "dir" : np.array([1,1]) / np.sqrt(2),
     "s" : 0.2,
-    "K" : 9,
+    "K" : 100,
     "M" : 1000,
     "data" : False
 }
