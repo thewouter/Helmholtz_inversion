@@ -20,6 +20,7 @@ class Generate_Mesh:
         self.h       = kwargs["h"]       if "h"       in kwargs else self.r0/2**3 # Characteristic length of mesh elements
         self.quad    = kwargs["quad"]    if "quad"    in kwargs else False        # If False, triangular mesh, if True quadrilateral
 
+        print(self.__dir__())
 
     def __call__(self):
         try:

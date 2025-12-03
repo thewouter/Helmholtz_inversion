@@ -26,7 +26,9 @@ kwargs_data = {
     "s" : 0.2,
     "K" : 100,
     "dir" : np.array([1,1]) / np.sqrt(2),
-    "data" : True
+    "data" : True,
+    "R" : 3,
+    "r1" : 3.5
 }
 kwargs_inv = {
     "freq" : freq,
@@ -37,7 +39,9 @@ kwargs_inv = {
     "s" : 0.2,
     "K" : 100,
     "M" : 1000,
-    "data" : False
+    "data" : False,
+    "R" : 3,
+    "r1" : 3.5
 }
 
 def u_i(kappa_0, n_out, alpha_out, dir, x): # Amplitude of incoming wave
